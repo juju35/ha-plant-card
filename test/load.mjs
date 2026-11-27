@@ -1,0 +1,78 @@
+// Evaluates the bundled card source (test/source.mjs) (a classic script, bundled as is by scripts/build.mjs) in a sandbox with minimal DOM
+// stand-ins and returns the names the tests need. No dependency, no browser.
+import vm from "node:vm";
+import { source } from "./source.mjs";
+
+
+// Shadow root stand-in: keeps the HTML it is given and the listeners it gets.
+const fakeRoot = () => ({
+  innerHTML: "",
+  listeners: {},
+  addEventListener(type, fn) {
+    this.listeners[type] = fn;
+  },
+  querySelector() {
+    return null;
+  },
+  querySelectorAll() {
+    return [];
+  },
+});
+
+export const load = () => {
+  const registry = new Map();
+  class HTMLElement {
+    attachShadow() {
+      this.shadowRoot = fakeRoot();
+      return this.shadowRoot;
+    }
+    dispatchEvent(ev) {
+      (this.events ||= []).push(ev);
+    }
+    appendChild(child) {
+      (this.children ||= []).push(child);
+    }
+    toggleAttribute(name, on) {
+      (this.attrs ||= {})[name] = !!on;
+    }
+  }
+  class CustomEvent {
+    constructor(type, init = {}) {
+      this.type = type;
+      this.detail = init.detail;
+    }
+  }
+  const docListeners = {};
+  const sandbox = {
+    HTMLElement,
+    CustomEvent,
+    Intl,
+    console: { info() {}, warn() {} },
+    customElements: { get: (t) => registry.get(t), define: (t, c) => registry.set(t, c) },
+    document: {
+      createElement: (t) => (registry.has(t) ? new (registry.get(t))() : { tagName: t.toUpperCase(), addEventListener() {} }),
+      addEventListener: (type, fn) => (docListeners[type] ||= new Set()).add(fn),
+      removeEventListener: (type, fn) => docListeners[type]?.delete(fn),
+    },
+    setTimeout,
+    clearTimeout,
+    setInterval: () => 0,
+    clearInterval() {},
+    addEventListener() {},
+    removeEventListener() {},
+    fireDocument: (type, ev) => {
+      for (const fn of [...(docListeners[type] || [])]) fn(ev);
+    },
+  };
+  sandbox.window = sandbox;
+  vm.createContext(sandbox);
+  return vm.runInContext(
+    `${source}
+    ({ STRINGS, PlantArt, CARE, careKind, guessType, deviceRoles, resolvePlant, statusOf, STATUS, plantConfigs, historyPoints, linePath, esc, lang,
+       PlantCard: customElements.get("plant-card"), PlantMiniCard: customElements.get("plant-mini-card"),
+       PlantCardEditor: customElements.get("plant-card-editor"), PlantMiniCardEditor: customElements.get("plant-mini-card-editor"), fireDocument, window })`,
+    sandbox,
+    // The file name lets `node --test --experimental-test-coverage` report the card source itself, not only the tests.
+    { filename: new URL("../src/index.js", import.meta.url).pathname },
+  );
+};
