@@ -1,0 +1,19 @@
+{
+  "name": "ha-plant-card",
+  "version": "1.0.0",
+  "description": "Lovelace cards for Home Assistant for indoor and outdoor plants: 79 illustrated species and 104 varieties, pot temperature and soil moisture against the ideal range, a drawing that follows the sensors and a 24-hour detail.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/build.mjs && node --check dist/plant-card.js",
+    "test": "node --test test/*.test.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "acorn": "^8.19.0",
+    "css-tree": "^3.2.1",
+    "playwright": "^1.65.1"
+  }
+}
