@@ -44,7 +44,10 @@ export const STYLE = `
   .hdr.night .ground { background: #7a5a3e; }
   .hdr.out .ground { background: #6fae4f; }
   .hdr.out.night .ground { background: #3f6e34; }
-  .hdr .head { position: absolute; left: 14px; top: 14px; right: 60px; display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .hdr .head { position: absolute; left: 14px; top: 10px; right: 12px; display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+  .hdr.has-btn .head { right: 54px; }
+  .hdr .head > .badge-icon { margin-top: 4px; }
+  .hdr .titles { flex: 1 1 auto; padding-top: 4px; }
   .badge-icon { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center;
                 background: color-mix(in srgb, var(--c) 18%, var(--card-background-color, #fff)); }
   .badge-icon .icon { width: 24px; height: 24px; fill: color-mix(in srgb, var(--c) 75%, var(--primary-text-color)); }
@@ -53,10 +56,9 @@ export const STYLE = `
           text-shadow: 0 0 6px var(--pl-halo, rgba(255,255,255,.7)); }
   .sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 6px var(--pl-halo, rgba(255,255,255,.7)); }
   .hdr.night { --pl-halo: rgba(0,0,0,.6); }
-  .pill { position: absolute; top: 10px; right: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+  .pill { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
           font-size: 11px; font-weight: 600; white-space: nowrap; background: color-mix(in srgb, var(--card-background-color, #fff) 88%, transparent); }
   .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
-  .has-btn .pill { right: 54px; }
   .rbtn { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--divider-color, rgba(127,127,127,.3));
           background: color-mix(in srgb, var(--card-background-color, #fff) 70%, transparent); color: var(--secondary-text-color);
           display: grid; place-items: center; cursor: pointer; padding: 0; }
@@ -86,9 +88,9 @@ export const STYLE = `
   .metrics .icon { width: 14px; height: 14px; }
   .t-ico { fill: var(--secondary-text-color); } .h-ico { fill: #3b82f6; }
   .metrics .alert .icon { fill: var(--c); }
-  .bar { position: relative; height: 5px; border-radius: 3px; background: var(--pl-track); margin-top: 4px; }
-  .bar .band { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: color-mix(in srgb, var(--pl-ok) 38%, transparent); }
-  .bar .mark { position: absolute; top: -2px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--c);
+  .bar { display: block; position: relative; height: 5px; border-radius: 3px; background: var(--pl-track); margin-top: 4px; }
+  .bar .band { display: block; position: absolute; top: 0; bottom: 0; border-radius: 3px; background: color-mix(in srgb, var(--pl-ok) 38%, transparent); }
+  .bar .mark { display: block; position: absolute; top: -2px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--c);
                box-shadow: 0 0 0 2px var(--pl-tile-bg, var(--card-background-color, #fff)); }
 
   /* Full card: filters and tiles */
@@ -153,7 +155,7 @@ export const STYLE = `
 
   /* Mini card: the header alone (the plant, its values, its state), expanded into the detail */
   .mini .hdr .big { position: absolute; left: 6px; bottom: 4px; width: 70px; height: 82px; }
-  .mini .hdr .head { left: 84px; top: 12px; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .mini .hdr .head { left: 84px; }
   .mini .hdr .metrics { font-size: 13px; margin-top: 3px; }
   .mini .hdr .metrics .icon { width: 15px; height: 15px; }
 `;

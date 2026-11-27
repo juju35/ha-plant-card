@@ -40,8 +40,20 @@ export const guessType = (text) => {
   return best?.key ?? null;
 };
 
-const entitiesOfDevice = (hass, deviceId) =>
-  deviceId ? Object.values(hass?.entities || {}).filter((e) => e.device_id === deviceId && !e.hidden && !e.disabled_by) : [];
+// The entities of each device, indexed once per entity registry (Home Assistant hands a new object when it changes).
+const DEVICE_INDEX = new WeakMap();
+export const devicesIndex = (hass) => {
+  const reg = hass?.entities;
+  if (!reg) return new Map();
+  let idx = DEVICE_INDEX.get(reg);
+  if (!idx) {
+    idx = new Map();
+    for (const e of Object.values(reg)) if (e.device_id && !e.hidden && !e.disabled_by) (idx.get(e.device_id) || idx.set(e.device_id, []).get(e.device_id)).push(e);
+    DEVICE_INDEX.set(reg, idx);
+  }
+  return idx;
+};
+const entitiesOfDevice = (hass, deviceId) => (deviceId ? devicesIndex(hass).get(deviceId) || [] : []);
 const devClass = (hass, id) => hass?.states?.[id]?.attributes?.device_class;
 const pick = (list, test) => list.find(test)?.entity_id;
 
@@ -52,7 +64,7 @@ export const deviceRoles = (hass, deviceId) => {
   const numbers = ents.filter((e) => ["number", "input_number"].includes(domainOf(e.entity_id)));
   const byId = (re) => (e) => re.test(e.entity_id);
   return {
-    moisture: pick(sensors, (e) => devClass(hass, e.entity_id) === "moisture") || pick(sensors, byId(/moisture|humidit/)),
+    moisture: pick(sensors, (e) => devClass(hass, e.entity_id) === "moisture") || pick(sensors, byId(/moisture/)),
     temperature: pick(sensors, (e) => devClass(hass, e.entity_id) === "temperature") || pick(sensors, byId(/temperature/)),
     battery: pick(sensors, (e) => devClass(hass, e.entity_id) === "battery") || pick(sensors, byId(/battery/)),
     min_moisture: pick(numbers, byId(/min.*moisture/)),
