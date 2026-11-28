@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1 - 2026-11-27
+
+### Fixes
+
+- A long plant name no longer runs under the status pill: the pill sits at the end of the title row
+- A device's air humidity sensor is no longer taken for the soil moisture
+- "Updated … ago" in the detail moves on with time
+- Two plants on the same sensor (or with none) get their own tile and detail
+- From the keyboard, opening a plant's detail moves the focus to its close button
+
+### Performance
+
+- The entities of each device are indexed once per entity registry instead of scanned on every update
+
 ## 1.0.0 - 2026-11-27
 
 ### Features

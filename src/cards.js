@@ -4,7 +4,7 @@
 import { ICONS } from "./core.js";
 import { clamp, esc, fmtNum, intlLocale, lang, svgIcon, t, toNum } from "./helpers.js";
 import { PlantArt } from "./plants.js";
-import { STATUS, plantConfigs, resolvePlant, statusOf } from "./care.js";
+import { STATUS, devicesIndex, plantConfigs, resolvePlant, statusOf } from "./care.js";
 import { STYLE } from "./styles.js";
 import { rcMorph } from "./in-place-redraw.js";
 
@@ -135,8 +135,12 @@ export class PlantBase extends HTMLElement {
   }
 
   _plants() {
+    const seen = new Set();
     return plantConfigs(this._hass, this._config || {}).map((c) => {
       const p = resolvePlant(this._hass, c);
+      // Two plants on one sensor (or with none) still get their own tile.
+      while (seen.has(p.id)) p.id = `${p.id}~`;
+      seen.add(p.id);
       if (!p.customName) p.name = plantLabel(this._hass, this._config, p.key);
       p.status = statusOf(p);
       return p;
@@ -151,9 +155,10 @@ export class PlantBase extends HTMLElement {
       if (c.device || c.entity) ids.push(`dev:${c.device || this._hass.entities?.[c.entity]?.device_id || ""}`);
     }
     const st = this._hass.states || {};
-    const devices = new Set(ids.filter((i) => i.startsWith("dev:")).map((i) => i.slice(4)));
-    if (devices.size) for (const e of Object.values(this._hass.entities || {})) if (devices.has(e.device_id)) ids.push(e.entity_id);
-    return JSON.stringify([this._night(), lang(this._hass, this._config), ids.map((i) => st[i]?.state + (st[i]?.attributes?.moisture ?? "") + (st[i]?.attributes?.temperature ?? ""))]);
+    const index = devicesIndex(this._hass);
+    for (const id of ids.filter((i) => i.startsWith("dev:"))) for (const e of index.get(id.slice(4)) || []) ids.push(e.entity_id);
+    // The minute too: "Updated 4 min ago" moves on with the next update of the house.
+    return JSON.stringify([this._night(), lang(this._hass, this._config), Math.floor(Date.now() / 60000), ids.map((i) => st[i]?.state + (st[i]?.attributes?.moisture ?? "") + (st[i]?.attributes?.temperature ?? ""))]);
   }
 
   _fmtTemp(p) {
@@ -174,13 +179,13 @@ export class PlantBase extends HTMLElement {
     const st = p.status;
     const hot = st === "hot" || st === "cold" || st === "frost";
     const water = st === "dry" || st === "very_dry" || st === "wet";
-    return `<div class="metrics"><span class="${hot ? "alert" : ""}">${svgIcon(ICONS.thermometer, "t-ico")}${esc(this._fmtTemp(p))}</span><span class="${water ? "alert" : ""}">${svgIcon(ICONS.water, "h-ico")}${esc(this._fmtMoisture(p))}</span></div>`;
+    return `<span class="metrics"><span class="${hot ? "alert" : ""}">${svgIcon(ICONS.thermometer, "t-ico")}${esc(this._fmtTemp(p))}</span><span class="${water ? "alert" : ""}">${svgIcon(ICONS.water, "h-ico")}${esc(this._fmtMoisture(p))}</span></span>`;
   }
 
   _bar(p) {
     const [lo, hi] = p.ranges.moisture;
     const m = p.moisture === null ? null : clamp(p.moisture, 0, 100);
-    return `<div class="bar" aria-hidden="true"><div class="band" style="left:${clamp(lo, 0, 100)}%;width:${clamp(hi - lo, 0, 100)}%"></div>${m === null ? "" : `<div class="mark" style="left:${m}%"></div>`}</div>`;
+    return `<span class="bar" aria-hidden="true"><span class="band" style="left:${clamp(lo, 0, 100)}%;width:${clamp(hi - lo, 0, 100)}%"></span>${m === null ? "" : `<span class="mark" style="left:${m}%"></span>`}</span>`;
   }
 
   // The 90 px header: the scene, the title block, the status pill and the round button of the top right corner.
@@ -190,8 +195,9 @@ export class PlantBase extends HTMLElement {
       ${out ? (night ? '<div class="moon"></div>' : '<div class="sun"></div>') : `<div class="win">${night ? '<div class="moon"></div>' : ""}</div>${night && (big || btn) ? '<div class="moon"></div>' : ""}`}
       ${shelf ? `<div class="shelf">${shelf}</div>` : ""}${big}
       <div class="ground"></div>
-      <div class="head">${big ? "" : `<div class="badge-icon ${cls}">${svgIcon(ICONS.sprout)}</div>`}<div class="titles"><div class="name">${esc(title)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}${extra}</div></div>
-      ${pill ? `<div class="pill ${cls}"><span class="dot ${blink ? "blink" : ""}"></span><span class="ink">${esc(pill)}</span></div>` : ""}
+      <div class="head">${big ? "" : `<div class="badge-icon ${cls}">${svgIcon(ICONS.sprout)}</div>`}<div class="titles"><div class="name">${esc(title)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}${extra}</div>${
+        pill ? `<div class="pill ${cls}" title="${esc(pill)}"><span class="dot ${blink ? "blink" : ""}"></span><span class="ink">${esc(pill)}</span></div>` : ""
+      }</div>
       ${btn}
     </div>`;
   }
@@ -351,6 +357,8 @@ export class PlantCard extends PlantBase {
       this._outside.on();
       this._sig = null;
       this._render();
+      // From the keyboard (a click with no click count), the focus moves to the popup's close button.
+      if (ev.detail === 0) this.shadowRoot.querySelector?.(".popup .rbtn")?.focus?.();
     }
   }
 

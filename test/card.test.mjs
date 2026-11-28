@@ -155,3 +155,19 @@ test("an untrusted name is escaped", () => {
   card.hass = hassOf({ "sensor.m": sensor(46, "moisture", "%") });
   assert.doesNotMatch(card.shadowRoot.innerHTML, /<img src=x/);
 });
+
+test("an air humidity sensor of the device is not taken for the soil moisture", () => {
+  const states = { "sensor.box_humidity": sensor(70, "humidity", "%"), "sensor.box_temperature": sensor(21, "temperature", "°C") };
+  const entities = Object.fromEntries(Object.keys(states).map((id) => [id, { entity_id: id, device_id: "box" }]));
+  const p = resolvePlant(hassOf(states, { entities }), { device: "box", plant_type: "monstera" });
+  assert.equal(p.moistureId, null);
+  assert.equal(p.temperatureId, "sensor.box_temperature");
+});
+
+test("two plants on one sensor get a tile each", () => {
+  const card = new api.PlantCard();
+  card.setConfig({ plants: [{ name: "A", plant_type: "monstera", moisture: "sensor.m" }, { name: "B", plant_type: "pilea", moisture: "sensor.m" }] });
+  card.hass = hassOf({ "sensor.m": sensor(46, "moisture", "%") });
+  const ids = [...card.shadowRoot.innerHTML.matchAll(/data-plant="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(new Set(ids).size, 2);
+});
